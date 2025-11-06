@@ -1,0 +1,22 @@
+.auth-bg {
+    background-color: #f8fbff;
+    position: relative;
+    min-height: 100vh;
+    overflow: hidden;
+}
+.auth-bg .blob {
+    position: absolute;
+    border-radius: 9999px;
+    opacity: .35;
+}
+.auth-bg .blob.blob-1 { width: 280px; height: 280px; left: -80px; top: -80px; background: #e8eef7; }
+.auth-bg .blob.blob-2 { width: 360px; height: 360px; right: -100px; bottom: -120px; background: #cfe2ff; }
+.auth-card {
+    max-width: 560px;
+    width: 100%;
+}
+.btn-brand {
+    background-color: #16A34A;
+    border-color: #16A34A;
+}
+.btn-brand:hover { background-color: #138a3f; border-color: #138a3f; }

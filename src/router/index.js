@@ -1,39 +1,31 @@
+// src/router/index.js  (o donde definas tus rutas)
 import { createRouter, createWebHistory } from 'vue-router'
 
 // Lazy imports
-const AdminLogin       = () => import('@/pages/AdminLogin.vue')
-const AdminLayout      = () => import('@/pages/admin/AdminLayout.vue')
-const AdminHome        = () => import('@/pages/admin/AdminHome.vue')
-const ConvocCategories = () => import('@/pages/admin/ConvocatoriasCategories.vue')
-const ConvocList       = () => import('@/pages/admin/ConvocatoriasList.vue')
+const AdminLayout               = () => import('@/pages/admin/AdminLayout.vue')
+const AdminHome                 = () => import('@/pages/admin/AdminHome.vue')
+const ConvocatoriasCategories   = () => import('@/pages/admin/ConvocatoriasCategories.vue')
+const ConvocatoriasList         = () => import('@/pages/admin/ConvocatoriasList.vue')
+const ConvocatoriaDetalle       = () => import('@/pages/admin/ConvocatoriaDetalle.vue')
 
 const router = createRouter({
     history: createWebHistory(),
     routes: [
-        { path: '/', redirect: '/admin/login' },
-
-        { path: '/admin/login', name: 'admin-login', component: AdminLogin, meta: { guestOnly: true } },
+        // ...tus otras rutas (login, público, etc.)
 
         {
             path: '/admin',
             component: AdminLayout,
-            meta: { requiresAuth: true, requiresAdmin: true },
             children: [
                 { path: '', name: 'admin-home', component: AdminHome },
-                { path: 'convocatorias/categorias', name: 'admin-convocatorias-categories', component: ConvocCategories },
-                { path: 'convocatorias/:idCategoria', name: 'admin-convocatorias-list', component: ConvocList, props: true },
-                {
-                    path: 'convocatorias/:idCategoria/detalle/:idConvocatoria',
-                    name: 'admin-convocatoria-detalle',
-                    component: () => import('../pages/admin/ConvocatoriaDetalle.vue'),
-                    props: true
-                },
 
-            ]
+                // Convocatorias flujo: Categoría -> Lista -> Detalle
+                { path: 'convocatorias', name: 'admin-convocatorias-categorias', component: ConvocatoriasCategories },
+                { path: 'convocatorias/:idCategoria', name: 'admin-convocatorias-list', component: ConvocatoriasList, props: true },
+                { path: 'convocatorias/:idCategoria/:idConvocatoria', name: 'admin-convocatoria-detalle', component: ConvocatoriaDetalle, props: true },
+            ],
         },
-
-        { path: '/:pathMatch(.*)*', redirect: '/admin/login' }
-    ]
+    ],
 })
 
 export default router

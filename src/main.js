@@ -20,22 +20,26 @@ router.beforeEach(async (to) => {
     const auth = useAuthStore()
 
     if (to.meta?.guestOnly && auth.isAuthenticated) {
-        return { name: 'admin-home' }
+        return { name: auth.isAdmin ? 'admin-home' : 'beneficiario-home' }
     }
 
     if (to.meta?.requiresAuth) {
-        if (!auth.isAuthenticated) return { name: 'admin-login' }
+        if (!auth.isAuthenticated) {
+            if (to.meta?.requiresAdmin) return { name: 'admin-login' }
+            if (to.meta?.requiresBeneficiario) return { name: 'beneficiario-login' }
+            // por defecto, enviamos al login de beneficiario
+            return { name: 'beneficiario-login' }
+        }
 
         // Opcional: validación con backend (si te estaba rompiendo, coméntalo por ahora)
         try {
             await auth.checkStatus()
         } catch {
-            return { name: 'admin-login' }
+            return { name: to.meta?.requiresAdmin ? 'admin-login' : 'beneficiario-login' }
         }
 
-        if (to.meta?.requiresAdmin && !auth.isAdmin) {
-            return { name: 'admin-login' }
-        }
+        if (to.meta?.requiresAdmin && !auth.isAdmin) return { name: 'admin-login' }
+        if (to.meta?.requiresBeneficiario && !auth.isBeneficiario) return { name: 'beneficiario-login' }
     }
 })
 

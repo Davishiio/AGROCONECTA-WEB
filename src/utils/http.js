@@ -18,9 +18,11 @@ api.interceptors.response.use(
             // fallback seguro sin store (evita dependencia circular)
             localStorage.removeItem('token')
             localStorage.removeItem('user')
-            // redirige al login admin
-            if (window.location.pathname !== '/admin/login') {
-                window.location.href = '/admin/login'
+            // redirige al login según último rol
+            const lastRole = localStorage.getItem('last_role')
+            const target = lastRole === 'beneficiario' ? '/login' : '/admin/login'
+            if (window.location.pathname !== target) {
+                window.location.href = target
             }
         }
         return Promise.reject(error)

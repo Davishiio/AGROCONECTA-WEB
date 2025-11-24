@@ -1,0 +1,77 @@
+/* src/assets/agro-theme.css */
+
+:root {
+    /* --- COLORES PRINCIPALES (Tu Paleta) --- */
+    --agro-emerald: #22A788;  /* Verde Esmeralda - PREDOMINANTE */
+    --agro-navy:    #1E3A5F;  /* Azul Marino - SECUNDARIO */
+    --agro-cream:   #F5F5DC;  /* Crema - Fondos suaves */
+    --agro-orange:  #FF9933;  /* Naranja - Detalles/Alertas */
+    --agro-clay:    #EB8888;  /* Rojizo - Errores */
+    --agro-sage:    #6C8A62;  /* Verde musgo - Variantes */
+    --agro-white:   #FFFFFF;
+}
+
+/* --- Utilidades de Fondo --- */
+/* El esmeralda ahora es el color fuerte de fondo */
+.bg-agro-emerald { background-color: var(--agro-emerald) !important; }
+.bg-agro-navy    { background-color: var(--agro-navy) !important; }
+.bg-agro-cream   { background-color: var(--agro-cream) !important; }
+.bg-agro-white   { background-color: var(--agro-white) !important; }
+
+/* --- Utilidades de Texto --- */
+.text-agro-emerald { color: var(--agro-emerald) !important; }
+.text-agro-navy    { color: var(--agro-navy) !important; }
+.text-agro-orange  { color: var(--agro-orange) !important; }
+
+/* --- Botones --- */
+/* Botón Principal: Verde Esmeralda sólido */
+.btn-agro-primary {
+    background-color: var(--agro-emerald);
+    border-color: var(--agro-emerald);
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.btn-agro-primary:hover {
+    background-color: #1b8a6e; /* Un tono más oscuro del esmeralda */
+    border-color: #1b8a6e;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(34, 167, 136, 0.2);
+}
+
+/* Botón Secundario: Azul Navy */
+.btn-agro-secondary {
+    background-color: var(--agro-navy);
+    border-color: var(--agro-navy);
+    color: white;
+}
+.btn-agro-secondary:hover {
+    background-color: #152a45;
+    color: white;
+}
+
+/* Botón Outline (Borde Verde, Texto Verde) */
+.btn-outline-agro {
+    color: var(--agro-emerald);
+    border-color: var(--agro-emerald);
+    background: transparent;
+    font-weight: 600;
+}
+.btn-outline-agro:hover {
+    background-color: var(--agro-emerald);
+    color: white;
+}
+
+/* Inputs */
+.form-control:focus, .form-select:focus {
+    border-color: var(--agro-emerald);
+    box-shadow: 0 0 0 0.25rem rgba(34, 167, 136, 0.15);
+}
+
+/* Textos de ayuda */
+.form-text-agro {
+    color: #6c757d;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}

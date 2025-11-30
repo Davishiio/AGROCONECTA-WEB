@@ -101,9 +101,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import '@/assets/agro-theme.css'
 
 const auth = useAuthStore()
+const router = useRouter()
 const curp = ref('')
 const password = ref('')
 const showPassword = ref(false)
@@ -114,6 +116,8 @@ const handleLogin = async () => {
   loading.value = true; errorMsg.value = ''
   try {
     await auth.loginBeneficiario(curp.value, password.value)
+    // Navegar al dashboard de beneficiario en éxito
+    await router.push('/beneficiario')
   } catch (error) {
     errorMsg.value = error.response?.status === 401 ? 'Credenciales incorrectas.' : 'Error de conexión.'
   } finally { loading.value = false }

@@ -176,11 +176,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { fetchMunicipios, fetchComunidadesByMunicipio } from '@/services/geo.api'
 import { useAuthStore } from '@/stores/auth'
 import '@/assets/agro-theme.css'
 
 const auth = useAuthStore()
+const router = useRouter()
 const loading = ref(false)
 const loadingComunidades = ref(false)
 const errorMsg = ref('')
@@ -217,7 +219,10 @@ const handleSubmit = async () => {
   loading.value = true
   errorMsg.value = ''
   try {
-    await auth.registerBeneficiario({ ...form.value, idComunidad: Number(form.value.idComunidad) })
+    const ok = await auth.registerBeneficiario({ ...form.value, idComunidad: Number(form.value.idComunidad) })
+    if (ok) {
+      await router.push('/beneficiario')
+    }
   } catch (error) {
     errorMsg.value = error.response?.data?.message || 'Ocurrió un error al registrarse.'
   } finally {

@@ -3,7 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
-// Bootstrap (si lo usas)
+// Bootstrap
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap'
 import 'bootstrap-icons/font/bootstrap-icons.css'
@@ -14,32 +14,35 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// 👉 Guards después de instalar Pinia y Router
 import { useAuthStore } from '@/stores/auth'
-router.beforeEach(async (to) => {
+
+router.beforeEach((to) => {
     const auth = useAuthStore()
 
+    // 1. Si el usuario ya está logueado y trata de ir al login, mándalo a su home
     if (to.meta?.guestOnly && auth.isAuthenticated) {
         return { name: auth.isAdmin ? 'admin-home' : 'beneficiario-home' }
     }
 
+    // 2. Rutas protegidas
     if (to.meta?.requiresAuth) {
+        // A) No tiene token -> Al login correspondiente
         if (!auth.isAuthenticated) {
             if (to.meta?.requiresAdmin) return { name: 'admin-login' }
-            if (to.meta?.requiresBeneficiario) return { name: 'beneficiario-login' }
-            // por defecto, enviamos al login de beneficiario
+            // Por defecto al de beneficiario
             return { name: 'beneficiario-login' }
         }
 
-        // Opcional: validación con backend (si te estaba rompiendo, coméntalo por ahora)
-        try {
-            await auth.checkStatus()
-        } catch {
-            return { name: to.meta?.requiresAdmin ? 'admin-login' : 'beneficiario-login' }
+        // B) Tiene token, validamos roles
+        if (to.meta?.requiresAdmin && !auth.isAdmin) {
+            // Si intenta entrar a admin pero no es admin
+            return { name: 'beneficiario-home' }
+        }
+        if (to.meta?.requiresBeneficiario && !auth.isBeneficiario) {
+            // Si intenta entrar a beneficiario pero es admin
+            return { name: 'admin-home' }
         }
 
-        if (to.meta?.requiresAdmin && !auth.isAdmin) return { name: 'admin-login' }
-        if (to.meta?.requiresBeneficiario && !auth.isBeneficiario) return { name: 'beneficiario-login' }
     }
 })
 

@@ -1,194 +1,148 @@
 <template>
-  <div>
-    <CategoriaCreateModal v-if="showCreateCard" @created="reload"/>
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <h4 class="mb-0">Convocatorias — Categorías</h4>
-      <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-primary" @click="showCreateCard = !showCreateCard">
-          <i class="bi bi-plus"></i>
-          Añadir categoría
-        </button>
-        <span class="text-secondary small" v-if="meta.count !== null">
-          {{ meta.count }} categorías
-        </span>
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold text-agro-navy mb-1">Categorías de Apoyo</h3>
+        <p class="text-muted mb-0">Selecciona un sector para gestionar sus convocatorias.</p>
+      </div>
+      <!-- Botón decorativo (funcionalidad futura) -->
+      <button class="btn btn-agro-primary fw-bold shadow-sm" disabled>
+        <i class="bi bi-plus-lg me-2"></i> Nueva Categoría
+      </button>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="row g-4">
+      <div class="col-md-6 col-lg-4" v-for="n in 3" :key="n">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-4">
+          <span class="placeholder col-6 bg-secondary mb-3"></span>
+          <span class="placeholder col-12 bg-light" style="height: 60px;"></span>
+        </div>
       </div>
     </div>
 
-    <div v-if="loading" class="d-flex justify-content-center py-5">
-      <div class="spinner-border" role="status"></div>
-    </div>
-
-    <div v-else-if="error" class="alert alert-danger">
-      {{ error }}
-    </div>
-
-    <div v-else>
-      <div v-if="categorias.length === 0" class="alert alert-info">
-        No hay categorías disponibles.
+    <!-- Empty State -->
+    <div v-else-if="categorias.length === 0" class="text-center py-5">
+      <div class="bg-light rounded-circle d-inline-flex p-4 mb-3 text-muted">
+        <i class="bi bi-tags fs-1"></i>
       </div>
+      <h5>No hay categorías disponibles</h5>
+      <p class="text-muted">Parece que no hay conexión con el servidor.</p>
+    </div>
 
-      <div class="row g-3">
+    <!-- Grid de Categorías -->
+    <div v-else class="row g-4">
+      <div
+          class="col-md-6 col-lg-4"
+          v-for="cat in categorias"
+          :key="cat.idCategoria"
+      >
         <div
-            class="col-12 col-md-6 col-lg-4"
-            v-for="cat in categorias"
-            :key="cat.idCategoria"
+            class="card border-0 shadow-sm rounded-4 h-100 hover-card cursor-pointer position-relative overflow-hidden"
+            @click="goToCategory(cat)"
         >
-          <div class="card h-100 shadow-sm border-0 category-card"
-               @click="goToCategoria(cat.idCategoria, cat.nombreCategoria)" style="cursor: pointer;">
-            <!-- Media con fade -->
-            <div class="card-media position-relative">
-              <img
-                  class="cat-img"
-                  :src="getCatImg(cat.nombreCategoria)"
-                  :alt="cat.nombreCategoria"
-                  loading="lazy"
-              />
-              <div class="media-gradient"></div>
+          <!-- Borde lateral de color -->
+          <div class="position-absolute top-0 start-0 bottom-0 bg-agro-emerald" style="width: 6px;"></div>
+
+          <div class="card-body p-4 ms-2">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="icon-box bg-light text-agro-emerald rounded-3 p-2">
+                <!-- Icono dinámico según ID o nombre (opcional) -->
+                <i class="bi" :class="getIcon(cat.idCategoria)"></i>
+              </div>
+              <span class="badge bg-white text-secondary border rounded-pill px-3">
+              </span>
             </div>
 
-            <!-- Contenido que aparece con el desvanecido -->
-            <div class="card-body d-flex flex-column">
-              <p class="card-text text-secondary small flex-grow-1 mb-3">
-                {{ cat.descripcionCategoria || '—' }}
-              </p>
+            <h5 class="fw-bold text-agro-navy mb-2">{{ cat.nombreCategoria }}</h5>
+            <p class="text-muted small mb-0 line-clamp-3">
+              {{ cat.descripcionCategoria }}
+            </p>
+          </div>
+
+          <div class="card-footer bg-white border-0 py-3 ms-2 d-flex justify-content-between align-items-center">
+            <small class="text-agro-emerald fw-bold">Ver Convocatorias</small>
+            <div class="btn btn-sm btn-light rounded-circle">
+              <i class="bi bi-arrow-right text-dark"></i>
             </div>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {fetchCategorias} from '@/services/convocatorias.api.js'
-import CategoriaCreateModal from './CategoriaCreateModal.vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { fetchCategorias } from '@/services/convocatorias.api'
+import '@/assets/agro-theme.css'
 
 const router = useRouter()
-const loading = ref(true)
-const error = ref('')
 const categorias = ref([])
-const meta = ref({count: null})
-const showCreateCard = ref(false)
+const loading = ref(true)
 
-// Mapea nombre de categoría -> ruta del PNG en /public/img/categorias
-const categoryImages = {
-  AGRICULTURA: '/img/categorias/AGRICULTURA.png',
-  DESARROLLORURAL: '/img/categorias/DESARROLLO_RURAL.png',
-  GANADERIA: '/img/categorias/GANADERIA.png',
-  PESCAYACUACULTURA: '/img/categorias/ACUACULTURA.png',
-  COORDINACIONEINFRAESTRUCTURA: '/img/categorias/COORDINACIONEINFRAESTRUCTURA.png',
-  FINANCIAMIENTO: '/img/categorias/FINANCIAMIENTO.png',
-}
-// Sirve archivos de /public respetando el base de Vite
-const withBase = (p) => (import.meta.env.BASE_URL || '/') + p.replace(/^\/+/, '')
-
-const normalizeKey = (s) => s
-    ?.toString().trim().toUpperCase()
-    .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-    .replace(/[^A-Z0-9]/g, '') // quita espacios y símbolos
-
-const getCatImg = (nombre) => {
-  const key = normalizeKey(nombre)
-  // 1) Primero intenta desde localStorage (cuando la imagen aún no está en /public)
-  const local = localStorage.getItem('cat_img_' + key)
-  if (local) return local
-
-  // 2) Si no hay en localStorage, usa el archivo de /public
-  const rel = categoryImages[key] || 'img/categorias/AGRICULTURA.png'
-  return withBase(rel)
-}
-
-onMounted(async () => {
-  try {
-    const res = await fetchCategorias()
-    categorias.value = res.data ?? []
-    meta.value.count = res.count ?? categorias.value.length
-  } catch (e) {
-    error.value = e?.response?.data?.message || 'Error al cargar categorías'
-  } finally {
-    loading.value = false
+// Mapeo simple de iconos por ID (puedes mejorarlo)
+const getIcon = (id) => {
+  const map = {
+    1: 'bi-flower1', // Agricultura
+    2: 'bi-house-heart', // Desarrollo Rural
+    3: 'bi-piggy-bank', // Ganadería
+    4: 'bi-water', // Pesca
+    5: 'bi-cash-coin', // Financiamiento
+    6: 'bi-bricks' // Infraestructura
   }
-})
-
-const goToCategoria = (idCategoria, nombre) => {
-  router.push({name: 'admin-convocatorias-list', params: {idCategoria}, query: {nombre}})
+  return map[id] || 'bi-grid'
 }
 
-const goToAddCategoria = () => {
-  router.push({name: 'admin-addcategoria'})
-}
-const reload = async () => {
+const loadData = async () => {
   loading.value = true
   try {
-    const res = await fetchCategorias()
-    categorias.value = res.data ?? []
-    meta.value.count = res.count ?? categorias.value.length
+    // LLAMADA A LA API
+    const response = await fetchCategorias()
+
+    // --- LÓGICA CLAVE PARA TU JSON ---
+    // Tu API devuelve: { count: 6, data: [...] }
+    if (response.data && Array.isArray(response.data)) {
+      categorias.value = response.data
+    } else if (Array.isArray(response)) {
+      // Por si acaso devuelve array directo
+      categorias.value = response
+    } else {
+      categorias.value = []
+    }
+
+  } catch (error) {
+    console.error("Error cargando categorías:", error)
   } finally {
     loading.value = false
   }
 }
+
+const goToCategory = (cat) => {
+  // Navega a la lista de convocatorias de esa categoría
+  // Ruta definida en index.js: /admin/convocatorias/:idCategoria
+  router.push({
+    name: 'admin-convocatorias-list',
+    params: { idCategoria: cat.idCategoria },
+    // Pasamos el nombre como prop o query para mostrarlo en el título de la siguiente página
+    query: { nombre: cat.nombreCategoria }
+  })
+}
+
+onMounted(() => {
+  loadData()
+})
 </script>
 
 <style scoped>
-.category-card .card-media {
-  position: relative;
+.hover-card { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
+.hover-card:hover { transform: translateY(-5px); box-shadow: 0 1rem 3rem rgba(0,0,0,.1)!important; }
+.icon-box { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.category-card .cat-img {
-  width: 100%;
-  height: 310px; /* ajusta si quieres */
-  object-fit: cover;
-  display: block;
-  transition: transform .35s ease, filter .35s ease, opacity .35s ease;
-}
-
-.category-card .media-gradient {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, .78) 95%);
-  opacity: .85;
-  transition: opacity .35s ease;
-}
-
-.category-card .media-title {
-  pointer-events: none;
-}
-
-.category-card .card-body {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height .35s ease, opacity .35s ease;
-}
-
-/* Efecto: al pasar el mouse, "se desvanece hacia abajo" y aparece contenido */
-.category-card:hover .cat-img {
-  transform: scale(1.03);
-  filter: brightness(.9);
-}
-
-.category-card:hover .media-gradient {
-  opacity: .35;
-}
-
-.category-card:hover .card-body {
-  max-height: 260px;
-  opacity: 1;
-}
-
-/* En dispositivos táctiles (sin hover) mostramos siempre el contenido */
-@media (hover: none) {
-  .category-card .card-body {
-    max-height: 400px;
-    opacity: 1;
-  }
-
-  .category-card .media-gradient {
-    opacity: .5;
-  }
 }
 </style>

@@ -1,71 +1,60 @@
 import { defineStore } from 'pinia'
 import api from '@/utils/http'
-import router from '@/router'
+
+// ¡IMPORTANTE! NO importamos router aquí para evitar el ciclo infinito.
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         token: localStorage.getItem('token') || null,
         user: JSON.parse(localStorage.getItem('user') || 'null'),
+        role: localStorage.getItem('last_role') || null
     }),
     getters: {
         isAuthenticated: (s) => !!s.token,
-        isAdmin: (s) => s.user?.role === 'admin' || s.user?.nombreRol === 'admin',
-        isBeneficiario: (s) => s.user?.nombreRol === 'beneficiario' || s.user?.role === 'beneficiario',
+        isAdmin: (s) => s.role === 'admin',
+        isBeneficiario: (s) => s.role === 'beneficiario',
     },
     actions: {
+        // Login Admin
         async login(email, password) {
             const { data } = await api.post('/admin/login', { email, password })
+            // Guardamos sesión pero NO redirigimos aquí
             this.setSession(data.token, data.user, 'admin')
-            router.replace('/admin')
+            return true
         },
+
+        // Login Beneficiario
         async loginBeneficiario(CURP, password) {
             const { data } = await api.post('/login', { CURP, password })
-            // Ajuste: si el backend devuelve user flat, lo estructuramos
-            const user = { ...data, role: data.nombreRol || 'beneficiario' }
+            const user = { ...data, role: 'beneficiario' } // Ajuste por si el back no manda rol
             this.setSession(data.token, user, 'beneficiario')
-            router.replace('/beneficiario')
+            return true
         },
-        // --- NUEVA ACCIÓN DE REGISTRO ---
-        async registerBeneficiario(payload) {
-            // payload trae: nombre, apellidos, curp, idComunidad, etc.
-            const { data } = await api.post('/register', payload)
 
-            // Opcional: Si el backend devuelve token al registrar, logueamos directo.
-            // Si no, redirigimos al login.
+        // Registro
+        async registerBeneficiario(payload) {
+            const { data } = await api.post('/register', payload)
             if (data.token) {
                 const user = { ...data, role: 'beneficiario' }
                 this.setSession(data.token, user, 'beneficiario')
-                router.replace('/beneficiario')
-            } else {
-                // Si requiere confirmación o solo devuelve "ok"
-                router.replace('/login')
-                return true // indicamos éxito
-            }
-        },
-        async checkStatus() {
-            if (!this.token) throw new Error('No token')
-            if (this.isAdmin) {
-                const { data } = await api.get('/admin/check-status')
-                if (!data.valid) throw new Error('invalid')
-                this.user = data.user
-                localStorage.setItem('user', JSON.stringify(this.user))
                 return true
             }
-            return true
+            return false
         },
+
         logout() {
             this.token = null
-            this.user  = null
+            this.user = null
+            this.role = null
             localStorage.removeItem('token')
             localStorage.removeItem('user')
-            const lastRole = localStorage.getItem('last_role')
-            if (lastRole) localStorage.removeItem('last_role')
-            router.replace(lastRole === 'beneficiario' ? '/login' : '/admin/login')
+            localStorage.removeItem('last_role')
         },
-        // Helper interno para no repetir código
+
         setSession(token, user, roleName) {
             this.token = token
             this.user = user
+            this.role = roleName
             localStorage.setItem('token', token)
             localStorage.setItem('user', JSON.stringify(user))
             localStorage.setItem('last_role', roleName)

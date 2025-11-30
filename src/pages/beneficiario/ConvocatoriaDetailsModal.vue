@@ -1,148 +1,93 @@
 <template>
-  <!-- Backdrop oscuro -->
   <div class="modal-backdrop fade show" v-if="show"></div>
-
-  <!-- Modal -->
-  <div
-      class="modal fade show d-block"
-      v-if="show"
-      tabindex="-1"
-      role="dialog"
-      aria-modal="true"
-      @click.self="$emit('close')"
-  >
+  <div class="modal fade show d-block" v-if="show" tabindex="-1" role="dialog" @click.self="$emit('close')">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
 
         <!-- Header -->
-        <div class="modal-header bg-success text-white border-0 px-4 py-3">
-          <div class="d-flex flex-column">
-            <span class="badge bg-white text-success bg-opacity-75 align-self-start mb-1 shadow-sm">
-              {{ convocatoria.numeroConvocatoria || 'Convocatoria' }}
-            </span>
-            <h5 class="modal-title fw-bold text-white mb-0" style="line-height: 1.2;">
+        <div class="modal-header bg-agro-emerald text-white px-4 py-3 border-0">
+          <div class="d-flex flex-column" style="max-width: 90%;">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-white text-agro-emerald bg-opacity-75 border border-white">
+              </span>
+              <span v-if="estatusUsuario" class="badge bg-warning text-dark border border-warning shadow-sm">
+                <i class="bi bi-info-circle-fill"></i> Solicitud {{ estatusUsuario }}
+              </span>
+            </div>
+            <h5 class="modal-title fw-bold text-white lh-sm text-truncate">
               {{ convocatoria.nombreConvocatoria }}
             </h5>
           </div>
-          <button
-              type="button"
-              class="btn-close btn-close-white align-self-start ms-2 mt-1"
-              @click="$emit('close')"
-              aria-label="Cerrar"
-          ></button>
+          <button type="button" class="btn-close btn-close-white align-self-start ms-auto" @click="$emit('close')"></button>
         </div>
 
-        <!-- Body -->
-        <div class="modal-body p-4 bg-light">
+        <div class="modal-body p-0 bg-light">
+          <!-- Resumen -->
+          <div class="bg-white p-4 border-bottom">
+            <p class="text-secondary mb-3 small" v-if="convocatoria.descripcionConvocatoria">
+              {{ convocatoria.descripcionConvocatoria }}
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+              <span class="badge bg-light text-secondary border d-flex align-items-center gap-1">
+                <i class="bi bi-calendar-check"></i> Inicio: {{ formatDate(convocatoria.fechaInicio) }}
+              </span>
+              <span class="badge bg-light text-secondary border d-flex align-items-center gap-1">
+                <i class="bi bi-calendar-x"></i> Cierre: {{ formatDate(convocatoria.fechaCierre) }}
+              </span>
+            </div>
+          </div>
 
-          <!-- Sección Descripción -->
-          <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
-              <h6 class="text-success fw-bold text-uppercase small ls-1 mb-2">
-                <i class="bi bi-info-circle-fill me-2"></i>Descripción
-              </h6>
-              <p class="text-muted mb-3 small">{{ convocatoria.descripcionConvocatoria }}</p>
+          <!-- Tabs -->
+          <div class="bg-white px-3 pt-2">
+            <ul class="nav nav-tabs nav-tabs-agro border-bottom-0" role="tablist">
+              <li class="nav-item"><button class="nav-link" :class="{active: tab==='objetivo'}" @click="tab='objetivo'">Objetivo</button></li>
+              <li class="nav-item"><button class="nav-link" :class="{active: tab==='requisitos'}" @click="tab='requisitos'">Requisitos</button></li>
+              <li class="nav-item"><button class="nav-link" :class="{active: tab==='registro'}" @click="tab='registro'">Registro</button></li>
+            </ul>
+          </div>
 
-              <div class="bg-success bg-opacity-10 p-3 rounded-3 border border-success border-opacity-25 d-flex gap-3">
-                <i class="bi bi-cash-stack fs-2 text-success"></i>
+          <!-- Contenido Tabs -->
+          <div class="p-4" style="min-height: 250px;">
+            <section v-if="tab==='objetivo'" class="animate-fade-in">
+              <h6 class="text-agro-navy fw-bold mb-2">Objetivo General</h6>
+              <p class="text-secondary small mb-4">{{ convocatoria.objetivoGeneral || 'No especificado.' }}</p>
+              <h6 class="text-agro-emerald fw-bold mb-1"><i class="bi bi-cash-stack me-2"></i>Apoyo</h6>
+              <p class="text-muted small mb-0">{{ convocatoria.descripcionMontoApoyo }}</p>
+            </section>
+
+            <section v-if="tab==='requisitos'" class="animate-fade-in">
+              <h6 class="text-agro-navy fw-bold mb-3">Documentación Requerida</h6>
+              <ul class="list-group list-group-flush border rounded-3">
+                <li v-for="(req, idx) in requisitosList" :key="idx" class="list-group-item d-flex gap-2 align-items-start bg-transparent py-3">
+                  <i class="bi bi-check-circle-fill text-agro-emerald mt-1 flex-shrink-0"></i>
+                  <span class="text-secondary small">{{ req }}</span>
+                </li>
+              </ul>
+            </section>
+
+            <section v-if="tab==='registro'" class="animate-fade-in">
+              <div class="alert alert-light border border-success border-opacity-25 d-flex gap-3 align-items-center mb-4">
+                <i class="bi bi-clock-history fs-3 text-agro-emerald"></i>
                 <div>
-                  <h6 class="fw-bold text-dark mb-1">Apoyo Económico / Especie</h6>
-                  <p class="small mb-0 text-secondary lh-sm">{{ convocatoria.descripcionMontoApoyo }}</p>
+                  <strong class="d-block text-agro-navy">Horario de Atención</strong>
+                  <span class="text-secondary small">{{ convocatoria.procesoRegistro?.horario || 'No especificado' }}</span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div class="row g-4">
-            <!-- Columna Izquierda: Requisitos -->
-            <div class="col-md-7">
-              <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
-                  <h6 class="text-success fw-bold text-uppercase small ls-1 mb-0">
-                    <i class="bi bi-clipboard-check-fill me-2"></i>Requisitos
-                  </h6>
-                </div>
-                <div class="card-body pt-2">
-                  <ul class="list-group list-group-flush small">
-                    <!-- Iteramos sobre el objeto requisitos -->
-                    <li
-                        v-for="(req, key) in convocatoria.requisitos"
-                        :key="key"
-                        class="list-group-item px-0 border-0 d-flex gap-2 bg-transparent py-2"
-                    >
-                      <i class="bi bi-check-square-fill text-primary mt-1 flex-shrink-0"></i>
-                      <span class="text-muted">{{ req }}</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- Columna Derecha: Elegibilidad y Registro -->
-            <div class="col-md-5">
-              <!-- Elegibilidad -->
-              <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                  <h6 class="text-success fw-bold text-uppercase small ls-1 mb-2">
-                    <i class="bi bi-person-check-fill me-2"></i>Elegibilidad
-                  </h6>
-                  <div v-if="convocatoria.criteriosElegibilidad?.especificos" class="small text-muted">
-                    <ul class="ps-3 mb-0">
-                      <li v-for="(crit, idx) in convocatoria.criteriosElegibilidad.especificos" :key="'esp'+idx" class="mb-1">
-                        {{ crit }}
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Info Registro -->
-              <div class="card border-0 shadow-sm bg-white">
-                <div class="card-body">
-                  <h6 class="text-dark fw-bold text-uppercase small ls-1 mb-3">
-                    <i class="bi bi-geo-alt-fill me-2"></i>Registro
-                  </h6>
-
-                  <div class="mb-2">
-                    <small class="text-uppercase text-secondary fw-bold" style="font-size: 0.7rem;">Horario de Atención</small>
-                    <div class="text-dark small"><i class="bi bi-clock me-1"></i>{{ convocatoria.procesoRegistro?.horario }}</div>
-                  </div>
-
-                  <div class="mb-0 mt-3 pt-2 border-top">
-                    <a
-                        v-if="convocatoria.procesoRegistro?.publicacion_web"
-                        :href="convocatoria.procesoRegistro.publicacion_web"
-                        target="_blank"
-                        class="btn btn-sm btn-outline-primary w-100"
-                    >
-                      Sitio Web Oficial <i class="bi bi-box-arrow-up-right ms-1"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
+            </section>
           </div>
         </div>
 
-
+        <!-- Footer -->
         <div class="modal-footer border-top bg-light py-3 d-flex justify-content-between align-items-center">
-          <button type="button" class="btn btn-outline-secondary px-4 fw-bold" @click="$emit('close')">
-            Cerrar
-          </button>
+          <button type="button" class="btn btn-outline-secondary fw-bold" @click="$emit('close')">Cerrar</button>
 
-          <!-- BOTÓN NUEVO DE APLICAR -->
-          <!-- Si hay URL externa, mantiene el comportamiento anterior, si no, abre modal interno -->
-          <div class="d-flex gap-2">
-            <a
-                v-if="convocatoria.urlPublicacionResultados"
-                :href="convocatoria.urlPublicacionResultados"
-                target="_blank"
-                class="btn btn-outline-agro px-4"
-            >
-              Ver Resultados
-            </a>
-
+          <div class="d-flex gap-2 align-items-center">
+            <div v-if="estatusUsuario" class="text-muted small fw-bold bg-white px-3 py-2 rounded border">
+              <i class="bi bi-check2-circle text-success fs-5 align-middle me-1"></i>
+              Ya has aplicado ({{ estatusUsuario }})
+            </div>
             <button
+                v-else
                 type="button"
                 class="btn btn-agro-primary px-4 fw-bold shadow-sm"
                 @click="$emit('apply', convocatoria)"
@@ -157,43 +102,41 @@
 </template>
 
 <script setup>
-/**
- * Props:
- * show: Boolean para controlar visibilidad
- * convocatoria: Objeto con toda la data de la convocatoria
- */
-defineProps({
+import { ref, computed, watch } from 'vue'
+import '@/assets/agro-theme.css'
+
+const props = defineProps({
   show: { type: Boolean, required: true },
-  convocatoria: { type: Object, default: () => ({}) }
+  convocatoria: { type: Object, default: () => ({}) },
+  estatusUsuario: { type: String, default: null }
 })
 
-defineEmits(['close', 'apply']) //
+const emit = defineEmits(['close', 'apply'])
+const tab = ref('objetivo')
+
+watch(() => props.show, (val) => { if (val) tab.value = 'objetivo' })
+
+const requisitosList = computed(() => {
+  if (!props.convocatoria.requisitos) return []
+  if (Array.isArray(props.convocatoria.requisitos)) return props.convocatoria.requisitos
+  return Object.entries(props.convocatoria.requisitos)
+      .sort((a,b) => Number(a[0]) - Number(b[0]))
+      .map(([,v]) => v)
+})
+
+const formatDate = (iso) => {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  if(!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString('es-MX', { year:'numeric', month:'long', day:'numeric' })
+}
 </script>
 
 <style scoped>
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(3px);
-  z-index: 1050;
-}
-.modal {
-  z-index: 1055;
-}
-.ls-1 {
-  letter-spacing: 1px;
-}
-/* Scrollbar bonita */
-.modal-body::-webkit-scrollbar {
-  width: 8px;
-}
-.modal-body::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-.modal-body::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-.modal-body::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
+.modal-backdrop { background-color: rgba(30, 58, 95, 0.6); backdrop-filter: blur(4px); z-index: 1050; }
+.modal { z-index: 1055; }
+.nav-tabs-agro .nav-link { color: var(--agro-navy); border: none; border-bottom: 3px solid transparent; padding: 0.75rem 1rem; font-weight: 500; }
+.nav-tabs-agro .nav-link.active { color: var(--agro-emerald); border-bottom-color: var(--agro-emerald); background: transparent; font-weight: 700; }
+.animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 </style>

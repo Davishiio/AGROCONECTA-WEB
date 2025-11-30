@@ -31,8 +31,7 @@
             <span class="badge bg-success-subtle text-success border">Inicio: {{ formatDate(data?.fechaInicio) }}</span>
             <span class="badge bg-danger-subtle text-danger border">Cierre: {{ formatDate(data?.fechaCierre) }}</span>
             <span class="badge bg-light text-secondary border" v-if="diasRestantes !== null">
-              Días restantes: {{ diasRestantes }}
-            </span>
+              Días restantes: {{ diasRestantes }}            </span>
           </div>
         </div>
       </div>

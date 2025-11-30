@@ -1,4 +1,5 @@
-<template>
+
+template>
   <aside class="border-end bg-white" style="width:260px">
     <div class="p-3 border-bottom">
       <strong>AgroConecta Admin</strong>

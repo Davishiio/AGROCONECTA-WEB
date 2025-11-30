@@ -1,4 +1,3 @@
-// src/services/convocatorias.api.js
 import api from '@/utils/http.js'
 
 let _summaryCache = null
@@ -6,6 +5,7 @@ let _summaryCacheAt = 0
 let _summaryController = null
 const TTL = 60_000
 
+// Dashboard: Resumen de todas las convocatorias
 export async function fetchAllConvocatoriasSummary({ force = false, signal } = {}) {
     const now = Date.now()
     if (!force && _summaryCache && (now - _summaryCacheAt) < TTL) return _summaryCache
@@ -25,102 +25,90 @@ export async function fetchAllConvocatoriasSummary({ force = false, signal } = {
     return data
 }
 
+// 1. OBTENER CATEGORÍAS
 export async function fetchCategorias() {
-    const { data } = await api.get('/categorias')
-    return data
-}
-
-export async function fetchConvocatoriasActivasByCategoria(idCategoria) {
-    const { data } = await api.get(`/convocatorias/${idCategoria}/convocatorias-activas`)
-    return {
-        items: data?.convocatorias ?? data?.items ?? [],
-        total: data?.total ?? (Array.isArray(data?.convocatorias) ? data.convocatorias.length : 0),
+    try {
+        const { data } = await api.get('/categorias')
+        return data
+    } catch (error) {
+        console.error("Error obteniendo categorías:", error)
+        return { count: 0, data: [] }
     }
 }
 
-/**
- * Obtiene el detalle completo de una convocatoria.
- * Maneja el caso donde el backend devuelve un array [{...}] en lugar de un objeto directo.
- */
+// 2. OBTENER CONVOCATORIAS POR CATEGORÍA
+export async function fetchConvocatoriasActivasByCategoria(idCategoria) {
+    const { data } = await api.get(`/convocatorias/${idCategoria}/convocatorias-activas`)
+    return {
+        items: data.convocatorias || [],
+        total: data.total || 0
+    }
+}
+
+// 3. DETALLE DE CONVOCATORIA
 export async function fetchConvocatoriaDetalle(idConvocatoria) {
-    // Endpoint: /api/modalidades/{id}/convocatorias
     try {
-        const { data } = await api.get(`/modalidades/${idConvocatoria}/convocatorias`)
-
-        // Si es un array y tiene elementos, devolvemos el primero
-        if (Array.isArray(data) && data.length > 0) {
-            return data[0]
-        }
-        // Si ya es un objeto, lo devolvemos
-        if (data && !Array.isArray(data)) {
-            return data
-        }
-
-        throw new Error('Formato de respuesta no reconocido')
+        const { data } = await api.get(`/convocatorias/${idConvocatoria}`)
+        if (Array.isArray(data) && data.length > 0) return data[0]
+        if (data && !Array.isArray(data)) return data
+        throw new Error('Formato no reconocido')
     } catch (error) {
-        // Fallback opcional por si la ruta de modalidades falla
-        console.warn("Intentando ruta alternativa de detalle...", error)
-        // Aquí podrías poner el fallback a /convocatorias/{idCategoria}/... si tuvieras el idCategoria a mano
         throw error
     }
 }
 
-export async function createCategoria(payload) {
-    const { data } = await api.post('/categorias-programa', payload)
-    return data
-}
-
-/**
- * Obtiene las convocatorias aplicables para la comunidad del beneficiario.
- * @param {Number} idComunidad
- */
+// --- ACTUALIZADO: AGRUPADO POR CATEGORÍAS ---
 export async function fetchConvocatoriasAplicables(idComunidad) {
-    // Endpoint: /api/convocatorias/aplicables?comunidad=15
-    const { data } = await api.get('/convocatorias/aplicables', {
-        params: { comunidad: idComunidad }
-    })
-    return data
+    const { data } = await api.get('/convocatorias/allConvocatorias');
+
+    // El backend devuelve: { categorias: [ { nombreCategoria: '...', convocatorias: [...] } ] }
+    // Procesamos para devolver solo categorías que tengan convocatorias "Abiertas"
+
+    const categoriasConContenido = (data.categorias || [])
+        .map(cat => {
+            // 1. Filtramos solo las convocatorias abiertas dentro de esta categoría
+            const activas = (cat.convocatorias || []).filter(c => c.estatus === 'Abierta');
+
+            // 2. Devolvemos la categoría con su lista filtrada (y inyectamos el nombreCategoria en los hijos por si acaso)
+            return {
+                ...cat,
+                convocatorias: activas.map(c => ({ ...c, nombreCategoria: cat.nombreCategoria }))
+            };
+        })
+        .filter(cat => cat.convocatorias.length > 0); // 3. Eliminamos categorías vacías
+
+    return categoriasConContenido;
 }
-/**
- * Obtiene los requisitos específicos de una convocatoria para subir archivos.
- * Endpoint: /api/convocatorias/{id}/requisitos
- */
 
 export async function fetchRequisitosConvocatoria(idConvocatoria) {
     const { data } = await api.get(`/convocatorias/${idConvocatoria}/requisitos`)
     return data
 }
 
-/**
- * Envía la postulación con los archivos adjuntos.
- * Se usa FormData para enviar archivos binarios.
- */
-export async function submitPostulacion(idConvocatoria, archivosMap) {
-    // 1. Validación preventiva
-    if (!idConvocatoria) {
-        throw new Error("El ID de la convocatoria es inválido o nulo.");
-    }
+export async function submitPostulacion(idConvocatoria, archivosMap, onUploadProgress) {
+    if (!idConvocatoria) throw new Error("ID inválido");
 
     const formData = new FormData()
-
-    // Agregamos el ID también al cuerpo por si acaso el backend lo busca ahí
     formData.append('idConvocatoria', idConvocatoria)
 
-    // 2. Iteramos los archivos y los agregamos con la clave correcta: documentos[ID]
     Object.keys(archivosMap).forEach(idRequisito => {
         const file = archivosMap[idRequisito]
-        // Esta clave debe coincidir con lo que tu Controller de Laravel espera (validate 'documentos.*')
         formData.append(`documentos[${idRequisito}]`, file)
     })
 
-    // Debug: Ver qué estamos enviando
-    console.log(`[API] Enviando POST a: /convocatorias/${idConvocatoria}/aplicar`)
-
-    // 3. Petición POST
     const { data } = await api.post(`/convocatorias/${idConvocatoria}/aplicar`, formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+            if (onUploadProgress && progressEvent.total) {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                onUploadProgress(percentCompleted);
+            }
         }
     })
+    return data
+}
+
+export async function fetchMiSolicitudEnConvocatoria(idConvocatoria) {
+    const { data } = await api.get(`/convocatorias/${idConvocatoria}/mis-documentos`)
     return data
 }

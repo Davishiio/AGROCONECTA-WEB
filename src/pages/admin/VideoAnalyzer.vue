@@ -99,7 +99,7 @@
               <td class="text-end pe-4">
                 <!-- Botón ANALIZAR (Rayo) -->
                 <button
-                    v-if="getArchivoVideo(item) && !getArchivoVideo(item).analizado"
+                    v-if="getArchivoVideo(item) && !getArchivoVideo(item).analizado && getArchivoVideo(item).estado !== 'Validado'"
                     @click="processFullAnalysis(item)"
                     class="btn btn-sm btn-agro-emerald text-white shadow-sm fw-bold"
                     :disabled="processingItem !== null"
@@ -110,12 +110,12 @@
 
                 <!-- Botón VER RESULTADOS (Ojo) -->
                 <button
-                    v-if="getArchivoVideo(item) && getArchivoVideo(item).analizado"
+                    v-if="getArchivoVideo(item) && (getArchivoVideo(item).analizado || getArchivoVideo(item).estado === 'Validado')"
                     class="btn btn-sm btn-outline-primary"
                     @click="showDetails(item)"
                     title="Ver detalle del análisis"
                 >
-                  <i class="bi bi-eye"></i> Ver Resumen
+                  <i class="bi bi-eye"></i> {{ getArchivoVideo(item).estado === 'Validado' ? 'Ver Análisis' : 'Ver Resumen' }}
                 </button>
               </td>
             </tr>
@@ -302,13 +302,53 @@ const showDetails = (item) => {
     // Asumiendo que Laravel devuelve el modelo completo o el campo summary
     const raw = archivo.video_analisis[0]
     analysisData = raw.summary || raw // Depende de cómo lo devuelva Laravel (anidado o plano)
+    
+    selectedAnalysis.value = analysisData
+    showModal.value = true
   } else {
-    alert("El análisis está marcado como listo, pero no hay datos cargados en esta vista. Intenta recargar la tabla.")
+    // Si no tenemos datos locales pero el estado es Validado, intentamos buscarlo
+    if (archivo.estado === 'Validado' || archivo.analizado) {
+        // Fetch on demand
+        // Necesitamos el idDocumento
+        if(!archivo.idDocumento) {
+            alert("No se puede buscar el análisis sin idDocumento.")
+            return
+        }
+        
+        // Mostrar loader o algo... (usaremos processingItem momentáneamente o un flag local)
+        // Para simpleza, usaremos un alert de "Cargando..." o mejor, un flag local si quisiéramos ser muy UX.
+        // Pero dado el requerimiento, haremos la llamada.
+        
+        videoService.getAnalysis(archivo.idDocumento)
+            .then(res => {
+                // Asumimos que devuelve el objeto de la tabla video_analisis
+                // res.data puede ser el objeto directo o un array.
+                // Ajustar según respuesta real.
+                console.log("Análisis recuperado:", res.data)
+                
+                let data = res.data
+                // Si devuelve array
+                if(Array.isArray(data) && data.length > 0) data = data[0]
+                
+                // Si devuelve estructura con 'summary'
+                analysisData = data.summary || data
+                
+                // Guardamos en local para no volver a pedir
+                if(!archivo.video_analisis) archivo.video_analisis = []
+                archivo.video_analisis.push(data)
+                
+                selectedAnalysis.value = analysisData
+                showModal.value = true
+            })
+            .catch(e => {
+                console.error(e)
+                alert("No se pudo recuperar el análisis. Puede que no exista aún.")
+            })
+    } else {
+        alert("El análisis está marcado como listo, pero no hay datos cargados en esta vista. Intenta recargar la tabla.")
+    }
     return
   }
-
-  selectedAnalysis.value = analysisData
-  showModal.value = true
 }
 
 const closeModal = () => {

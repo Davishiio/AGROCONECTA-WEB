@@ -62,13 +62,13 @@
               </div>
 
               <div v-if="alertasPlagas.length > 0" class="list-group">
-                <div v-for="alerta in alertasPlagas" :key="alerta.id" class="list-group-item border-0 bg-transparent px-0 py-2">
+                <div v-for="item in alertasPlagas" :key="item.id" class="list-group-item border-0 bg-transparent px-0 py-2">
                   <div class="d-flex align-items-start gap-2">
                     <i class="bi bi-bug text-danger mt-1"></i>
                     <div>
-                      <strong>{{ alerta.plaga?.nombre_comun || 'Plaga Detectada' }}</strong>
-                      <p class="mb-0 small text-muted">{{ alerta.mensaje }}</p>
-                      <small class="text-secondary fst-italic">{{ formatDateShort(alerta.created_at) }}</small>
+                      <strong>{{ item.alerta?.reporte?.plaga?.nombre_comun || 'Plaga Detectada' }}</strong>
+                      <p class="mb-0 small text-muted">{{ item.alerta?.mensaje_alerta }}</p>
+                      <small class="text-secondary fst-italic">{{ formatDateShort(item.created_at) }}</small>
                     </div>
                   </div>
                 </div>
@@ -250,6 +250,40 @@
       </div>
     </div>
 
+    <!-- MODAL ALERTA INICIAL -->
+    <div v-if="showAlertaModal && alertasPlagas.length > 0" class="modal fade show d-block" style="background: rgba(0,0,0,0.6); z-index: 1060;">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 border-top border-danger border-5">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold text-danger">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i> ¡Alerta Fitosanitaria!
+            </h5>
+            <button type="button" class="btn-close" @click="showAlertaModal = false"></button>
+          </div>
+          <div class="modal-body">
+            <p class="lead fs-6 text-dark mb-3">
+              Se han detectado amenazas fitosanitarias cerca de tus parcelas. Por favor revisa tus cultivos.
+            </p>
+            <div class="list-group">
+              <div v-for="item in alertasPlagas" :key="item.id" class="list-group-item list-group-item-action border-0 bg-light mb-2 rounded">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1 fw-bold text-danger">{{ item.alerta?.reporte?.plaga?.nombre_comun || 'Plaga Desconocida' }}</h6>
+                  <small class="text-muted">{{ formatDateShort(item.created_at) }}</small>
+                </div>
+                <p class="mb-1 small">{{ item.alerta?.mensaje_alerta }}</p>
+                <small class="text-muted fst-italic">Radio de alerta: {{ parseInt(item.alerta?.radio_km) }} km</small>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-danger w-100 fw-bold" @click="showAlertaModal = false">
+              Entendido, revisaré mis parcelas
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="showSuccessMsg" class="position-fixed top-0 start-50 translate-middle-x mt-4 p-3 z-3">
       <div class="alert alert-success shadow-lg border-0 rounded-4 px-4 py-3">
         <i class="bi bi-check-circle-fill me-2"></i> <strong>{{ successMsgText }}</strong>
@@ -297,6 +331,7 @@ const showMyReportsModal = ref(false)
 const showMapViewer = ref(false)
 const showSuccessMsg = ref(false)
 const successMsgText = ref('')
+const showAlertaModal = ref(false)
 
 // Data temporal
 const selectedConvocatoria = ref({})
@@ -330,6 +365,11 @@ const loadAlertasPlagas = async () => {
     const res = await plagasService.getAlerts()
     // Soporte para respuesta tipo Laravel Resource { data: [...] } o array directo
     alertasPlagas.value = res.data.data || res.data || []
+    
+    // Si hay alertas, mostrar modal
+    if (alertasPlagas.value.length > 0) {
+      showAlertaModal.value = true
+    }
   } catch (e) {
     console.error("Error cargando alertas de plagas:", e)
   }

@@ -73,7 +73,6 @@
             </tr>
             <tr v-for="item in reports" :key="item.id">
               <td class="ps-4 fw-bold text-secondary">#{{ item.id }}</td>
-              <!-- Usamos la fecha corta aquí también -->
               <td class="small text-muted">{{ formatDate(item.created_at) }}</td>
 
               <td>
@@ -190,7 +189,6 @@
                       <strong>Curp:</strong>
                       {{ selectedReport.usuario?.beneficiario?.curp || 'N/A' }}
                     </p>
-                    <!-- CORRECCIÓN: Fecha de aparición sin hora -->
                     <p class="mb-1"><strong>Fecha:</strong> {{ formatDate(selectedReport.fecha_aparicion || selectedReport.created_at) }}</p>
                     <p class="mb-1"><strong>Parcela:</strong> {{ selectedReport.parcela?.nombreParcela }}</p>
                     <p class="mb-1"><strong>Tipo Evidencia:</strong> <span class="badge bg-light text-dark border">{{ selectedReport.tipo_evidencia }}</span></p>
@@ -241,7 +239,7 @@
 
             </div>
 
-            <!-- NUEVA SECCIÓN: Tarjeta de la Plaga (Si existe) -->
+            <!-- SECCIÓN: Tarjeta de la Plaga (Si existe en el reporte original) -->
             <div v-if="selectedReport.plaga" class="mt-3">
               <PlagaInfoCard :plaga="selectedReport.plaga" />
             </div>
@@ -256,7 +254,6 @@
                     <input type="number" v-model="validationRadio" class="form-control form-control-sm" step="0.5" min="0.5">
                   </div>
 
-                  <!-- CORRECCIÓN: Selector de Plaga desde Catálogo -->
                   <div class="col-md-8">
                     <label class="form-label small fw-bold">Confirmar Plaga</label>
                     <select v-model="idPlagaConfirmada" class="form-select form-select-sm">
@@ -270,6 +267,20 @@
                   <div class="col-12">
                     <label class="form-label small fw-bold">Nota Administrativa</label>
                     <input type="text" v-model="validationComment" class="form-control form-control-sm" placeholder="Razón de la decisión...">
+                  </div>
+
+                  <!-- NUEVO CAMPO: Mensaje de Alerta Editable -->
+                  <div class="col-12">
+                    <label class="form-label small fw-bold">Mensaje de Alerta</label>
+                    <textarea
+                        v-model="validationAlertMsg"
+                        class="form-control form-control-sm"
+                        rows="2"
+                        placeholder="Mensaje que se enviará a los vecinos..."
+                    ></textarea>
+                    <div class="form-text small" style="font-size: 0.75rem;">
+                      Este mensaje se enviará a las parcelas vecinas dentro del radio seleccionado.
+                    </div>
                   </div>
                 </div>
                 <div class="d-flex gap-2 mt-3">
@@ -303,7 +314,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import plagasService from '@/services/plagas.service'
 import PlagaInfoCard from './PlagaInfoCard.vue'
 
@@ -320,6 +331,7 @@ const validating = ref(false)
 const validationRadio = ref(3.0)
 const validationComment = ref('')
 const idPlagaConfirmada = ref(null)
+const validationAlertMsg = ref('')
 
 const setFilter = (newFilter) => {
   filter.value = newFilter
@@ -369,6 +381,8 @@ const openDetails = async (item) => {
   showModal.value = true
   validationRadio.value = 3.0
   validationComment.value = ''
+  // Resetear mensaje de alerta
+  validationAlertMsg.value = ''
 }
 
 const closeModal = () => {
@@ -379,7 +393,6 @@ const closeModal = () => {
 const runAnalysis = async () => {
   if (!selectedReport.value) return
 
-  // CORRECCIÓN: Si es 'Texto', permitimos continuar aunque no haya URL
   const esTexto = selectedReport.value.tipo_evidencia === 'Texto'
 
   if (!selectedReport.value.archivo_r2_url && !esTexto) {
@@ -392,12 +405,12 @@ const runAnalysis = async () => {
     const payload = {
       tipo: selectedReport.value.tipo_evidencia,
       url: selectedReport.value.archivo_r2_url,
-      // Si es texto y no hay url, enviamos el comentario como contenido (el servicio Python debe soportarlo o ignorarlo)
       text_content: selectedReport.value.comentario_usuario
     }
 
     const res = await plagasService.analyzeEvidenceDirect(payload)
 
+    // Aquí guardamos los datos en selectedReport (MEMORIA)
     selectedReport.value.ia_json_data = res.data.summary
     selectedReport.value.ia_transcripcion = res.data.transcription
     selectedReport.value.estado_analisis = 'Finalizado'
@@ -411,18 +424,53 @@ const runAnalysis = async () => {
   }
 }
 
+// Watcher para autocompletar el mensaje de alerta (UX)
+watch([idPlagaConfirmada, validationRadio], ([newPlagaId, newRadio]) => {
+  if (!newPlagaId) {
+    // Si no hay plaga, no borramos si el usuario ya escribió algo, a menos que sea el mensaje automático anterior
+    return
+  }
+  const plaga = catalogoPlagas.value.find(p => p.id === newPlagaId)
+  const nombre = plaga ? plaga.nombre_comun : 'una plaga'
+
+  // Sugerimos un mensaje
+  validationAlertMsg.value = `ALERTA FITOSANITARIA: Se ha confirmado la presencia de ${nombre} en su zona (Radio: ${newRadio}km). Revise sus cultivos.`
+})
+
+// --- VALIDACIÓN CORREGIDA ---
 const validate = async (decision) => {
   if (!selectedReport.value) return
+
+  if (decision === 'Aprobar' && !idPlagaConfirmada.value) {
+    alert("Por favor selecciona qué plaga se está confirmando para poder aprobar.")
+    return
+  }
+
   if (!confirm(`¿Estás seguro de ${decision} este reporte?`)) return
 
   validating.value = true
   try {
-    await plagasService.validateReport(selectedReport.value.id, {
-      decision,
-      radio: validationRadio.value,
+    // Map decision to backend status
+    const estadoReporte = decision === 'Aprobar' ? 'Validado' : 'Rechazado'
+
+    // Construir payload COMPLETO según requerimientos del backend
+    const payload = {
+      estado_reporte: estadoReporte,
+      id_plaga_confirmada: idPlagaConfirmada.value,
+      radio_km: parseFloat(validationRadio.value),
+      mensaje_alerta: validationAlertMsg.value,
       nota_admin: validationComment.value,
-      id_plaga: idPlagaConfirmada.value
-    })
+      idParcela: selectedReport.value.parcela?.idParcela,
+      
+      // Datos de IA requeridos si el análisis finalizó
+      ia_json_data: selectedReport.value.ia_json_data || null,
+      ia_transcripcion: selectedReport.value.ia_transcripcion || null
+    }
+
+    // Debug
+    console.log("Payload enviado a validar:", payload)
+
+    await plagasService.validateReport(selectedReport.value.id, payload)
 
     alert(`Reporte procesado exitosamente`)
     closeModal()
@@ -437,7 +485,6 @@ const validate = async (decision) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return ''
-  // CORRECCIÓN: Solo fecha, sin hora
   return new Date(dateString).toLocaleDateString('es-MX', {
     day: 'numeric', month: 'short', year: 'numeric'
   })
@@ -455,7 +502,7 @@ const isVideo = (url) => {
 
 onMounted(() => {
   filter.value = 'Recibido'
-  fetchCatalogo() // Cargamos el catálogo al montar
+  fetchCatalogo()
   fetchReports()
 })
 </script>

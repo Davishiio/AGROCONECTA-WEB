@@ -3,7 +3,7 @@ import axios from 'axios'
 
 // Configuración de la URL de la IA
 // Asegúrate de que esta IP sea la de tu máquina backend
-const AI_SERVER_URL = 'http://192.168.3.21:8001';
+const AI_SERVER_URL = 'http://192.168.1.236:8001';
 
 export default {
     // ===========================

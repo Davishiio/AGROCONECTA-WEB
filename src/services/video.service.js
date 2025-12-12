@@ -9,7 +9,7 @@ export default {
     // RUTA ESPECÍFICA PARA MENTORÍA
     analyzeVideo(params) {
         // params: { url: '...' }
-        return axios.post('http://192.168.3.21:8000/analizar/mentor', params)
+        return axios.post('http://192.168.1.236:8001/analizar/mentor', params)
     },
 
     saveAnalysis(data) {

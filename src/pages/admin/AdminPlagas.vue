@@ -77,7 +77,7 @@
 
               <td>
                 <div class="fw-bold text-dark">
-                  {{ item.usuario?.beneficiario?.nombre_completo || 'Usuario Desconocido' }}
+                  {{ getNombreUsuario(item) }}
                 </div>
                 <div class="small text-muted">
                   {{ item.usuario?.correo || 'Sin correo' }}
@@ -183,11 +183,11 @@
                     <h6 class="fw-bold text-muted text-uppercase small mb-3">Información del Reporte</h6>
                     <p class="mb-1">
                       <strong>Usuario:</strong>
-                      {{ selectedReport.usuario?.beneficiario?.nombre_completo || 'N/A' }}
+                      {{ getNombreUsuario(selectedReport) }}
                     </p>
                     <p class="mb-1">
                       <strong>Curp:</strong>
-                      {{ selectedReport.usuario?.beneficiario?.curp || 'N/A' }}
+                      {{ getCurpUsuario(selectedReport) }}
                     </p>
                     <p class="mb-1"><strong>Fecha:</strong> {{ formatDate(selectedReport.fecha_aparicion || selectedReport.created_at) }}</p>
                     <p class="mb-1"><strong>Parcela:</strong> {{ selectedReport.parcela?.nombreParcela }}</p>
@@ -505,6 +505,21 @@ onMounted(() => {
   fetchCatalogo()
   fetchReports()
 })
+
+// Helpers para mostrar datos de usuario correctamente
+const getNombreUsuario = (row) => {
+  const b = row?.usuario?.beneficiario
+  const nombre = [b?.nombre, b?.apellido_paterno, b?.apellido_materno]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+  return nombre || row?.usuario?.correo || 'Usuario Desconocido'
+}
+
+const getCurpUsuario = (row) => {
+  const b = row?.usuario?.beneficiario
+  return b?.CURP || 'N/A'
+}
 </script>
 
 <style scoped>

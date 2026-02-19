@@ -1,23 +1,7 @@
 <template>
   <div class="dashboard-container min-vh-100 font-sans bg-light">
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg bg-white shadow-sm mb-4 sticky-top border-bottom border-success border-opacity-25">
-      <div class="container">
-        <span class="navbar-brand fw-bold d-flex align-items-center gap-2">
-          <img src="/img/logo.svg" onerror="this.style.display='none'" alt="AgroConecta" style="height: 35px; width: auto;">
-          <span class="text-agro-emerald">AgroConecta</span>
-        </span>
-        <div class="d-flex align-items-center gap-3">
-          <div class="d-none d-md-block text-end lh-1">
-            <span class="fw-bold text-agro-navy">{{ userName }}</span>
-            <small class="d-block text-muted">{{ nombreComunidad }}</small>
-          </div>
-          <button class="btn btn-outline-danger btn-sm rounded-circle shadow-sm" style="width: 32px; height: 32px;" @click="handleLogout">
-            <i class="bi bi-power"></i>
-          </button>
-        </div>
-      </div>
-    </nav>
+    <BeneficiarioNavbar />
 
     <div class="container py-2">
       <!-- Hero Section -->
@@ -30,6 +14,14 @@
                 <p class="mb-0 opacity-90 fs-5">
                   Gestiona tus parcelas y aplica a convocatorias activas.
                 </p>
+                <div class="mt-4 d-flex gap-3 flex-wrap">
+                   <router-link :to="{ name: 'mercado-list' }" class="btn btn-light text-agro-emerald fw-bold rounded-pill px-4 shadow-sm">
+                      <i class="bi bi-shop me-2"></i> Ir al Mercado
+                   </router-link>
+                   <router-link :to="{ name: 'beneficiario-plagas' }" class="btn btn-outline-light fw-bold rounded-pill px-4 shadow-sm">
+                      <i class="bi bi-map-fill me-2"></i> Mapa de Plagas
+                   </router-link>
+                </div>
               </div>
               <i class="bi bi-flower1 position-absolute text-white opacity-25" style="font-size: 12rem; right: -30px; bottom: -50px;"></i>
             </div>
@@ -300,6 +292,7 @@ import { useAuthStore } from '@/stores/auth'
 import { fetchConvocatoriasAplicables, fetchConvocatoriaDetalle, fetchMiSolicitudEnConvocatoria } from '@/services/convocatorias.api'
 import { fetchMisParcelas } from '@/services/parcelas.api'
 import plagasService from '@/services/plagas.service'
+import BeneficiarioNavbar from '@/components/BeneficiarioNavbar.vue'
 
 import ConvocatoriaPostulacionModal from './ConvocatoriaPostulacionModal.vue'
 import ConvocatoriaDetailsModal from './ConvocatoriaDetailsModal.vue'

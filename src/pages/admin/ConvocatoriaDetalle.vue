@@ -156,7 +156,8 @@ async function loadDetalle() {
   try {
     // LOGS para depuración
     console.log('[DETALLE] GET', `/convocatorias/${idCategoria.value}/convocatoria/${idConvocatoria.value}`)
-    const res = await fetchConvocatoriaDetalle(idCategoria.value, idConvocatoria.value)
+    // FIX: El endpoint espera el ID de la convocatoria, no el de la categoría.
+    const res = await fetchConvocatoriaDetalle(idConvocatoria.value)
     console.log('[DETALLE] RES', res)
     data.value = res
   } catch (e) {

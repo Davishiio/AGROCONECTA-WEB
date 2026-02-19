@@ -120,12 +120,10 @@ const loadData = async () => {
 }
 
 const goToCategory = (cat) => {
-  // Navega a la lista de convocatorias de esa categoría
-  // Ruta definida en index.js: /admin/convocatorias/:idCategoria
+  // Navega a la lista de PROGRAMAS de esa categoría (Nuevo Flujo)
   router.push({
-    name: 'admin-convocatorias-list',
+    name: 'admin-programs',
     params: { idCategoria: cat.idCategoria },
-    // Pasamos el nombre como prop o query para mostrarlo en el título de la siguiente página
     query: { nombre: cat.nombreCategoria }
   })
 }
@@ -142,6 +140,7 @@ onMounted(() => {
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

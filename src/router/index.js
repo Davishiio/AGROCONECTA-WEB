@@ -88,16 +88,35 @@ const router = createRouter({
                     name: 'admin-convocatorias-categorias',
                     component: ConvocatoriasCategories
                 },
+                // NUEVO FLUJO: Categoría -> Programas -> Modalidades -> Detalle
                 {
-                    path: 'convocatorias/:idCategoria',
-                    name: 'admin-convocatorias-list',
-                    component: ConvocatoriasList,
+                    path: 'convocatorias/:idCategoria/programas',
+                    name: 'admin-programs',
+                    component: () => import('@/pages/admin/AdminPrograms.vue'),
                     props: true
                 },
+                {
+                    path: 'programas/:idPrograma/modalidades',
+                    name: 'admin-modalities',
+                    component: () => import('@/pages/admin/AdminModalities.vue'),
+                    props: true
+                },
+                // Ruta para detalle directo (o via flujo)
+                // Hacemos idCategoria opcional o usamos una ruta específica si viene del flujo de modalidades
                 {
                     path: 'convocatorias/:idCategoria/:idConvocatoria',
                     name: 'admin-convocatoria-detalle',
                     component: ConvocatoriaDetalle,
+                    props: true
+                },
+                // Ruta alternativa por si venimos de modalidades sin idCategoria claro, o usamos 0
+                // Pero para mantener simple, mantenemos la de arriba y en el componente de modalidades pasamos un idCategoria dummy si es necesario.
+
+                // Mantenemos la antigua por retrocompatibilidad si fuese necesario, pero cambiamos el nombre para evitar conflictos si se usara el mismo path.
+                {
+                    path: 'convocatorias/:idCategoria/lista-antigua',
+                    name: 'admin-convocatorias-list-old',
+                    component: ConvocatoriasList,
                     props: true
                 },
             ],
@@ -109,6 +128,41 @@ const router = createRouter({
             name: 'beneficiario-home',
             component: BeneficiarioHome,
             meta: { requiresAuth: true, requiresBeneficiario: true },
+        },
+        // --- MERCADO ROUTES ---
+        {
+            path: '/beneficiario/mercado',
+            meta: { requiresAuth: true, requiresBeneficiario: true },
+            component: () => import('@/pages/beneficiario/mercado/MercadoLayout.vue'), // Wrapper for Navbar
+            children: [
+                {
+                    path: '',
+                    name: 'mercado-list',
+                    component: () => import('@/pages/beneficiario/mercado/MercadoList.vue')
+                },
+                {
+                    path: 'producto/:id',
+                    name: 'mercado-detail',
+                    component: () => import('@/pages/beneficiario/mercado/ProductDetail.vue')
+                },
+                {
+                    path: 'mis-productos',
+                    name: 'mercado-my-products',
+                    component: () => import('@/pages/beneficiario/mercado/MyProducts.vue')
+                },
+                {
+                    path: 'perfil-vendedor',
+                    name: 'mercado-vendor-profile',
+                    component: () => import('@/pages/beneficiario/mercado/VendorProfile.vue')
+                }
+            ]
+        },
+        // --- PLAGAS ROUTE ---
+        {
+            path: '/beneficiario/plagas',
+            name: 'beneficiario-plagas',
+            meta: { requiresAuth: true, requiresBeneficiario: true },
+            component: () => import('@/pages/beneficiario/plagas/PlagasView.vue')
         },
     ],
 })

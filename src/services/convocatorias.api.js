@@ -11,7 +11,7 @@ export async function fetchAllConvocatoriasSummary({ force = false, signal } = {
     if (!force && _summaryCache && (now - _summaryCacheAt) < TTL) return _summaryCache
 
     if (_summaryController) {
-        try { _summaryController.abort() } catch {}
+        try { _summaryController.abort() } catch { }
         _summaryController = null
     }
     const controller = new AbortController()
@@ -42,6 +42,24 @@ export async function fetchConvocatoriasActivasByCategoria(idCategoria) {
     return {
         items: data.convocatorias || [],
         total: data.total || 0
+    }
+}
+
+// 2.1 OBTENER PROGRAMAS POR CATEGORÍA (NUEVO FLUJO)
+export async function fetchProgramasByCategoria(idCategoria) {
+    // Request: GET /api/programas?idCategoria=1
+    const { data } = await api.get(`/programas`, { params: { idCategoria } })
+    return data || []
+}
+
+// 2.2 OBTENER MODALIDADES POR PROGRAMA (NUEVO FLUJO)
+export async function fetchModalidadesByPrograma(idPrograma) {
+    // Request: GET /api/programas/{idPrograma}/modalidades
+    const { data } = await api.get(`/programas/${idPrograma}/modalidades`)
+    return {
+        items: data.data || [],
+        total: data.total || 0,
+        programaId: data.data?.[0]?.idPrograma // Útil si necesitamos info del programa
     }
 }
 
@@ -110,5 +128,78 @@ export async function submitPostulacion(idConvocatoria, archivosMap, onUploadPro
 
 export async function fetchMiSolicitudEnConvocatoria(idConvocatoria) {
     const { data } = await api.get(`/convocatorias/${idConvocatoria}/mis-documentos`)
+    return data
+}
+
+// --- CRUD OPERACIONES (NUEVO) ---
+
+// PROGRAMAS
+export async function createPrograma(payload) {
+    const { data } = await api.post('/programas', payload)
+    return data
+}
+
+export async function updatePrograma(id, payload) {
+    // Asumimos que el endpoint es PUT /programas/{id} aunque la docu no lo especificó explícitamente para programas, 
+    // pero sí para los otros. Si falla, verificaremos.
+    const { data } = await api.put(`/programas/${id}`, payload)
+    return data
+}
+
+// MODALIDADES
+export async function createModalidad(payload) {
+    const { data } = await api.post('/admin/modalidades', payload)
+    return data
+}
+
+export async function updateModalidad(id, payload) {
+    const { data } = await api.put(`/admin/modalidades/${id}`, payload)
+    return data
+}
+
+// CONVOCATORIAS
+export async function createConvocatoria(payload) {
+    const { data } = await api.post('/admin/convocatorias', payload)
+    return data
+}
+
+export async function updateConvocatoria(id, payload) {
+    const { data } = await api.put(`/admin/convocatorias/${id}`, payload)
+    return data
+}
+
+export async function saveRequisitos(idConvocatoria, requisitos) {
+    // requisitos: [{ idTipoDocumento, obligatorio, orden }]
+    const { data } = await api.post(`/admin/convocatorias/${idConvocatoria}/requisitos`, { requisitos })
+    return data
+}
+
+export async function fetchTiposDocumentos() {
+    // Asumimos GET /admin/tipos-documentos para listar
+    // El usuario mencionó: http://localhost:8000/api/admin/tipos-documentos
+    const { data } = await api.get('/admin/tipos-documentos')
+    return data
+}
+
+export async function createTipoDocumento(payload) {
+    // payload: { nombre: "...", es_vigencia_temporal: 1/0 }
+    const { data } = await api.post('/admin/tipos-documentos', payload)
+    return data
+}
+
+
+// --- COBERTURA GEOGRÁFICA ---
+export async function fetchMunicipios(params = {}) {
+    const { data } = await api.get('/municipios', { params })
+    return data
+}
+
+export async function fetchConvocatoriaCobertura(idConvocatoria) {
+    const { data } = await api.get(`/convocatorias/${idConvocatoria}/municipios`)
+    return data
+}
+
+export async function saveConvocatoriaCobertura(idConvocatoria, cobertura) {
+    const { data } = await api.post(`/admin/convocatorias/${idConvocatoria}/cobertura`, { cobertura })
     return data
 }
